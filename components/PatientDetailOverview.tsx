@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  Droplets, Utensils, Dumbbell, CheckCircle2, Target, Plus, Flag, Trash2, RefreshCcw, StickyNote 
+  Droplets, Utensils, Dumbbell, CheckCircle2, Target, Plus, Flag, Trash2, RefreshCcw, StickyNote,
+  Calendar, Trophy, Clock, RotateCcw
 } from 'lucide-react';
 import { Patient, PatientGoal, PatientTracking } from '../types';
 
@@ -10,6 +11,7 @@ interface PatientDetailOverviewProps {
   goals: PatientGoal[];
   onUpdateGoals: (goals: PatientGoal[]) => void;
   onAddWater: () => void;
+  onResetWater?: () => void;
 }
 
 export const PatientDetailOverview: React.FC<PatientDetailOverviewProps> = ({ 
@@ -17,7 +19,8 @@ export const PatientDetailOverview: React.FC<PatientDetailOverviewProps> = ({
   trackingData, 
   goals, 
   onUpdateGoals,
-  onAddWater 
+  onAddWater,
+  onResetWater
 }) => {
   const [newGoalDesc, setNewGoalDesc] = useState('');
   const [newGoalDate, setNewGoalDate] = useState('');
@@ -53,7 +56,17 @@ export const PatientDetailOverview: React.FC<PatientDetailOverviewProps> = ({
   };
 
   const handleDeleteGoal = (id: string) => {
-    onUpdateGoals(goals.filter(g => g.id !== id));
+    if(confirm('Tem certeza que deseja remover esta meta?')) {
+        onUpdateGoals(goals.filter(g => g.id !== id));
+    }
+  };
+
+  const getDaysRemaining = (deadline: string) => {
+    const today = new Date();
+    const due = new Date(deadline);
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    return diffDays;
   };
 
   return (
@@ -66,9 +79,16 @@ export const PatientDetailOverview: React.FC<PatientDetailOverviewProps> = ({
                 <div className="flex items-center gap-2 text-blue-600 font-black text-lg">
                     <Droplets size={20} /> {trackingData.waterGlassCount}/{trackingData.waterGoal}
                 </div>
-                <button onClick={onAddWater} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all">
-                    <Plus size={16} />
-                </button>
+                <div className="flex gap-1">
+                    {onResetWater && trackingData.waterGlassCount > 0 && (
+                        <button onClick={onResetWater} title="Zerar" className="p-1.5 bg-gray-50 text-gray-400 rounded-lg hover:bg-gray-100 transition-all">
+                            <RotateCcw size={16} />
+                        </button>
+                    )}
+                    <button onClick={onAddWater} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all">
+                        <Plus size={16} />
+                    </button>
+                </div>
             </div>
         </div>
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
@@ -95,90 +115,151 @@ export const PatientDetailOverview: React.FC<PatientDetailOverviewProps> = ({
         {/* Goals Section */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col">
             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                    <Target className="text-wine-600" size={20} /> Metas Terapêuticas
-                </h3>
+                <div>
+                    <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                        <Target className="text-wine-600" size={20} /> Metas Terapêuticas
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-1">Acompanhamento de objetivos clínicos</p>
+                </div>
                 {!isAddingGoal && (
                     <button 
                         onClick={() => setIsAddingGoal(true)}
-                        className="text-xs font-bold text-wine-600 bg-wine-50 px-3 py-1.5 rounded-lg hover:bg-wine-100 transition-colors flex items-center gap-1"
+                        className="text-xs font-bold text-white bg-wine-600 px-4 py-2 rounded-xl hover:bg-wine-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2"
                     >
-                        <Plus size={14} /> Nova Meta
+                        <Plus size={16} /> Nova Meta
                     </button>
                 )}
             </div>
             
-            <div className="space-y-4 flex-1">
-                {goals.map((goal) => (
-                    <div key={goal.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-wine-100 transition-colors">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <p className="font-bold text-gray-700 text-sm">{goal.description}</p>
-                                <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
-                                    <Flag size={10} /> Prazo: {new Date(goal.deadline).toLocaleDateString()}
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${goal.status === 'Concluída' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                    {goal.status}
-                                </span>
-                                <button onClick={() => handleDeleteGoal(goal.id)} className="text-gray-300 hover:text-red-500">
-                                    <Trash2 size={14} />
+            <div className="space-y-6 flex-1">
+                {goals.map((goal) => {
+                    const daysLeft = getDaysRemaining(goal.deadline);
+                    const isCompleted = goal.progress === 100;
+                    
+                    return (
+                        <div key={goal.id} className={`p-5 rounded-2xl border transition-all relative overflow-hidden group ${isCompleted ? 'bg-green-50/50 border-green-200' : 'bg-white border-gray-100 hover:border-wine-200 hover:shadow-md'}`}>
+                            {isCompleted && (
+                                <div className="absolute top-0 right-0 p-2 opacity-10">
+                                    <Trophy size={80} className="text-green-600" />
+                                </div>
+                            )}
+                            
+                            <div className="flex justify-between items-start mb-4 relative z-10">
+                                <div className="flex items-start gap-3">
+                                    <div className={`mt-1 p-2 rounded-full ${isCompleted ? 'bg-green-100 text-green-600' : 'bg-wine-50 text-wine-600'}`}>
+                                        {isCompleted ? <Trophy size={18} /> : <Flag size={18} />}
+                                    </div>
+                                    <div>
+                                        <h4 className={`font-bold text-base ${isCompleted ? 'text-green-800' : 'text-gray-800'}`}>{goal.description}</h4>
+                                        <div className="flex items-center gap-3 mt-1.5">
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1 ${daysLeft < 0 && !isCompleted ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                <Calendar size={10} /> 
+                                                {daysLeft < 0 ? 'Atrasado' : `${daysLeft} dias restantes`}
+                                            </span>
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${isCompleted ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                {goal.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onClick={() => handleDeleteGoal(goal.id)} className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                                    <Trash2 size={16} />
                                 </button>
                             </div>
-                        </div>
-                        <div>
-                            <div className="flex justify-between text-xs mb-1">
-                                <span className="font-bold text-gray-500">Progresso</span>
-                                <span className="font-bold text-wine-600">{goal.progress}%</span>
+                            
+                            <div className="relative z-10">
+                                <div className="flex justify-between items-end mb-2">
+                                    <span className="text-xs font-bold text-gray-400">Progresso</span>
+                                    <span className={`text-xl font-black ${isCompleted ? 'text-green-600' : 'text-wine-600'}`}>
+                                        {goal.progress}%
+                                    </span>
+                                </div>
+                                
+                                <div className="relative h-4 bg-gray-100 rounded-full mb-3 shadow-inner">
+                                    <div 
+                                        className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${isCompleted ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-rose-400 to-wine-600'}`}
+                                        style={{ width: `${goal.progress}%` }}
+                                    ></div>
+                                    <div className="absolute top-0 left-[25%] h-full w-0.5 bg-white/30"></div>
+                                    <div className="absolute top-0 left-[50%] h-full w-0.5 bg-white/30"></div>
+                                    <div className="absolute top-0 left-[75%] h-full w-0.5 bg-white/30"></div>
+                                </div>
+
+                                <input 
+                                    type="range" 
+                                    min="0" max="100" 
+                                    step="5"
+                                    value={goal.progress} 
+                                    onChange={(e) => handleUpdateProgress(goal.id, Number(e.target.value))}
+                                    className={`w-full h-1 bg-transparent appearance-none cursor-pointer ${isCompleted ? 'accent-green-600' : 'accent-wine-600'}`}
+                                />
+                                <div className="flex justify-between text-[10px] text-gray-400 mt-1 font-medium px-1">
+                                    <span>Início</span>
+                                    <span>Meio do Caminho</span>
+                                    <span>Objetivo</span>
+                                </div>
                             </div>
-                            <input 
-                                type="range" 
-                                min="0" max="100" 
-                                value={goal.progress} 
-                                onChange={(e) => handleUpdateProgress(goal.id, Number(e.target.value))}
-                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-wine-600"
-                            />
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
                 
                 {isAddingGoal && (
-                    <div className="p-4 bg-wine-50/50 rounded-xl border border-wine-100 animate-fade-in">
-                        <input 
-                            type="text" 
-                            placeholder="Descrição da meta (ex: Perder 2kg)"
-                            className="w-full p-2 text-sm border border-gray-200 rounded-lg mb-2 focus:border-wine-500 focus:outline-none"
-                            value={newGoalDesc}
-                            onChange={(e) => setNewGoalDesc(e.target.value)}
-                        />
-                        <div className="flex gap-2">
-                            <input 
-                                type="date" 
-                                className="flex-1 p-2 text-sm border border-gray-200 rounded-lg focus:border-wine-500 focus:outline-none"
-                                value={newGoalDate}
-                                onChange={(e) => setNewGoalDate(e.target.value)}
-                            />
-                            <button 
-                                onClick={handleAddGoal}
-                                className="px-4 py-2 bg-wine-600 text-white rounded-lg text-xs font-bold hover:bg-wine-700"
-                            >
-                                Adicionar
-                            </button>
-                            <button 
-                                onClick={() => setIsAddingGoal(false)}
-                                className="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-300"
-                            >
-                                Cancelar
-                            </button>
+                    <div className="p-6 bg-wine-50/50 rounded-2xl border-2 border-dashed border-wine-200 animate-slide-up">
+                        <h4 className="font-bold text-wine-800 mb-4 flex items-center gap-2">
+                            <Plus size={18} /> Adicionar Nova Meta
+                        </h4>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Descrição</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="Ex: Reduzir consumo de açúcar..."
+                                    className="w-full p-3 text-sm border border-gray-200 rounded-xl focus:border-wine-500 focus:ring-2 focus:ring-wine-200 focus:outline-none bg-white"
+                                    value={newGoalDesc}
+                                    onChange={(e) => setNewGoalDesc(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Prazo Limite</label>
+                                <input 
+                                    type="date" 
+                                    className="w-full p-3 text-sm border border-gray-200 rounded-xl focus:border-wine-500 focus:ring-2 focus:ring-wine-200 focus:outline-none bg-white"
+                                    value={newGoalDate}
+                                    onChange={(e) => setNewGoalDate(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button 
+                                    onClick={handleAddGoal}
+                                    className="flex-1 py-3 bg-wine-600 text-white rounded-xl text-sm font-bold hover:bg-wine-700 shadow-md transition-all"
+                                >
+                                    Confirmar Meta
+                                </button>
+                                <button 
+                                    onClick={() => setIsAddingGoal(false)}
+                                    className="px-6 py-3 bg-white text-gray-600 border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {goals.length === 0 && !isAddingGoal && (
-                    <div className="text-center py-8 text-gray-400">
-                        <Target className="mx-auto mb-2 opacity-20" size={32} />
-                        <p className="text-sm">Nenhuma meta definida ainda.</p>
+                    <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-gray-300 mx-auto mb-3 shadow-sm">
+                            <Target size={32} />
+                        </div>
+                        <h4 className="font-bold text-gray-600">Nenhuma meta ativa</h4>
+                        <p className="text-sm text-gray-400 mb-4">Defina objetivos para acompanhar a evolução.</p>
+                        <button 
+                            onClick={() => setIsAddingGoal(true)}
+                            className="text-sm font-bold text-wine-600 hover:underline"
+                        >
+                            Criar primeira meta
+                        </button>
                     </div>
                 )}
             </div>
@@ -187,12 +268,14 @@ export const PatientDetailOverview: React.FC<PatientDetailOverviewProps> = ({
         {/* Right Column: Next Visit & Notes */}
         <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center items-center text-center">
-                <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center text-wine-600 mb-3">
+                <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center text-wine-600 mb-3 animate-pulse">
                     <RefreshCcw size={32} />
                 </div>
                 <h4 className="font-bold text-gray-800">Próximo Retorno</h4>
                 <p className="text-sm text-gray-500 mb-4">Sugerido para 15 de Novembro</p>
-                <button className="px-6 py-2 bg-wine-600 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all">Agendar Agora</button>
+                <button className="px-6 py-3 bg-wine-600 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] transition-all w-full flex items-center justify-center gap-2">
+                    <Calendar size={18} /> Agendar Agora
+                </button>
             </div>
 
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex-1">
@@ -200,8 +283,8 @@ export const PatientDetailOverview: React.FC<PatientDetailOverviewProps> = ({
                     <StickyNote size={18} className="text-yellow-500" /> Notas de Evolução
                 </h3>
                 <textarea 
-                    className="w-full h-32 p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-wine-500 text-sm resize-none"
-                    placeholder="Adicione notas sobre a evolução clínica..."
+                    className="w-full h-40 p-4 bg-yellow-50/30 rounded-xl border border-yellow-100 focus:ring-2 focus:ring-wine-500 focus:border-transparent text-sm resize-none text-gray-700 leading-relaxed"
+                    placeholder="Adicione notas sobre a evolução clínica, feedback da paciente sobre as metas..."
                 ></textarea>
             </div>
         </div>

@@ -9,12 +9,12 @@ export const MOCK_PATIENTS: Patient[] = [
     condition: 'Endometriose',
     stage: 'Grau 2 - Profunda',
     status: 'Ativo',
-    lastVisit: '2023-10-15',
-    nextVisit: '2023-11-20',
+    lastVisit: '2026-10-15',
+    nextVisit: '2026-11-20',
     avatarUrl: 'https://picsum.photos/200/200?random=1',
     goals: [
-      { id: 'g1', description: 'Reduzir distensão abdominal (Inchaço)', deadline: '2023-12-01', status: 'Em andamento', progress: 65 },
-      { id: 'g2', description: 'Regularizar intestino', deadline: '2023-11-15', status: 'Concluída', progress: 100 }
+      { id: 'g1', description: 'Reduzir distensão abdominal (Inchaço)', deadline: '2026-12-01', status: 'Em andamento', progress: 65 },
+      { id: 'g2', description: 'Regularizar intestino', deadline: '2026-11-15', status: 'Concluída', progress: 100 }
     ],
     anamnesis: {
       mainComplaint: 'Dores pélvicas intensas durante o período menstrual e distensão abdominal frequente.',
@@ -29,9 +29,9 @@ export const MOCK_PATIENTS: Patient[] = [
       }
     },
     anthropometry: [
-      { date: '2023-08-10', weight: 62.5, height: 165, waist: 72, hip: 98, bmi: 22.9 },
-      { date: '2023-09-15', weight: 61.8, height: 165, waist: 70, hip: 97, bmi: 22.7 },
-      { date: '2023-10-15', weight: 60.5, height: 165, waist: 68, hip: 96, bmi: 22.2 }
+      { date: '2026-08-10', weight: 62.5, height: 165, waist: 72, hip: 98, bmi: 22.9 },
+      { date: '2026-09-15', weight: 61.8, height: 165, waist: 70, hip: 97, bmi: 22.7 },
+      { date: '2026-10-15', weight: 60.5, height: 165, waist: 68, hip: 96, bmi: 22.2 }
     ],
     mealPlan: {
       title: 'Protocolo Anti-inflamatório Fase 1',
@@ -90,11 +90,11 @@ export const MOCK_PATIENTS: Patient[] = [
       ]
     },
     symptomsLog: [
-      { date: '2023-10-25', painLevel: 8, bloating: 7, energy: 3, cyclePhase: 'Menstrual' },
-      { date: '2023-10-26', painLevel: 6, bloating: 6, energy: 4, cyclePhase: 'Menstrual' },
-      { date: '2023-10-27', painLevel: 4, bloating: 3, energy: 6, cyclePhase: 'Folicular' },
-      { date: '2023-10-28', painLevel: 2, bloating: 1, energy: 8, cyclePhase: 'Folicular' },
-      { date: '2023-10-29', painLevel: 1, bloating: 1, energy: 9, cyclePhase: 'Folicular' },
+      { date: '2026-10-25', painLevel: 8, bloating: 7, energy: 3, cyclePhase: 'Menstrual' },
+      { date: '2026-10-26', painLevel: 6, bloating: 6, energy: 4, cyclePhase: 'Menstrual' },
+      { date: '2026-10-27', painLevel: 4, bloating: 3, energy: 6, cyclePhase: 'Folicular' },
+      { date: '2026-10-28', painLevel: 2, bloating: 1, energy: 8, cyclePhase: 'Folicular' },
+      { date: '2026-10-29', painLevel: 1, bloating: 1, energy: 9, cyclePhase: 'Folicular' },
     ]
   },
   {
@@ -105,12 +105,12 @@ export const MOCK_PATIENTS: Patient[] = [
     condition: 'Tentante',
     stage: 'Pré-concepção',
     status: 'Ativo',
-    lastVisit: '2023-10-01',
-    nextVisit: '2023-11-05',
+    lastVisit: '2026-10-01',
+    nextVisit: '2026-11-05',
     avatarUrl: 'https://picsum.photos/200/200?random=2',
     goals: [
-       { id: 'g3', description: 'Melhorar qualidade ovocitária', deadline: '2024-01-10', status: 'Em andamento', progress: 40 },
-       { id: 'g4', description: 'Reduzir consumo de café', deadline: '2023-11-01', status: 'Concluída', progress: 100 }
+       { id: 'g3', description: 'Melhorar qualidade ovocitária', deadline: '2027-01-10', status: 'Em andamento', progress: 40 },
+       { id: 'g4', description: 'Reduzir consumo de café', deadline: '2026-11-01', status: 'Concluída', progress: 100 }
     ],
     symptomsLog: []
   },
@@ -122,8 +122,8 @@ export const MOCK_PATIENTS: Patient[] = [
     condition: 'Climatério',
     stage: 'Inicial',
     status: 'Pendente',
-    lastVisit: '2023-09-20',
-    nextVisit: '2023-11-10',
+    lastVisit: '2026-09-20',
+    nextVisit: '2026-11-10',
     avatarUrl: 'https://picsum.photos/200/200?random=3',
     goals: [],
     symptomsLog: []
@@ -135,18 +135,18 @@ export const MOCK_PATIENTS: Patient[] = [
     email: 'mari@email.com',
     condition: 'SOP',
     status: 'Ativo',
-    lastVisit: '2023-10-20',
-    nextVisit: '2023-11-25',
+    lastVisit: '2026-10-20',
+    nextVisit: '2026-11-25',
     avatarUrl: 'https://picsum.photos/200/200?random=4',
     goals: [
-        { id: 'g5', description: 'Perda de peso (5kg)', deadline: '2023-12-25', status: 'Em andamento', progress: 20 },
+        { id: 'g5', description: 'Perda de peso (5kg)', deadline: '2026-12-25', status: 'Em andamento', progress: 20 },
     ],
     symptomsLog: []
   }
 ];
 
 export const MOCK_APPOINTMENTS: Appointment[] = [
-  { id: '101', patientId: '1', patientName: 'Ana Júlia Silva', date: '2023-10-30', time: '09:00', type: 'Retorno', status: 'Agendada' },
-  { id: '102', patientId: '4', patientName: 'Mariana Costa', date: '2023-10-30', time: '11:00', type: 'Online', status: 'Agendada' },
-  { id: '103', patientId: '2', patientName: 'Carla Mendez', date: '2023-10-30', time: '14:30', type: 'Primeira Consulta', status: 'Agendada' },
+  { id: '101', patientId: '1', patientName: 'Ana Júlia Silva', date: '2026-10-30', time: '09:00', type: 'Retorno', status: 'Agendada' },
+  { id: '102', patientId: '4', patientName: 'Mariana Costa', date: '2026-10-30', time: '11:00', type: 'Online', status: 'Agendada' },
+  { id: '103', patientId: '2', patientName: 'Carla Mendez', date: '2026-10-30', time: '14:30', type: 'Primeira Consulta', status: 'Agendada' },
 ];

@@ -2,14 +2,15 @@ import React from 'react';
 import { 
   Users, Calendar, Activity, TrendingUp, ChevronRight, CheckCircle2, Clock, AlertCircle
 } from 'lucide-react';
-import { MOCK_APPOINTMENTS } from '../constants';
 import { 
   BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
+import { Patient, Appointment } from '../types';
 
 interface DashboardProps {
   onNavigate: (page: string) => void;
-  totalPatients: number;
+  patients: Patient[];
+  appointments: Appointment[];
 }
 
 const data = [
@@ -20,7 +21,18 @@ const data = [
   { name: 'Sex', patients: 7 },
 ];
 
-export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, totalPatients }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, patients, appointments }) => {
+  // Real stats calculation
+  const today = new Date().toISOString().split('T')[0];
+  const appointmentsToday = appointments.filter(a => a.date === today).length;
+  const pendingAppointments = appointments.filter(a => a.date >= today && a.status === 'Agendada');
+  const activePatients = patients.filter(p => p.status === 'Ativo').length;
+  
+  // Sort next 3 appointments
+  const nextAppointments = pendingAppointments
+    .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime())
+    .slice(0, 3);
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Welcome Section */}
@@ -48,10 +60,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, totalPatients 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { title: 'Pacientes Ativas', value: totalPatients.toString(), icon: Users, color: 'bg-purple-100 text-purple-700' },
-          { title: 'Consultas Hoje', value: '5', icon: Calendar, color: 'bg-rose-100 text-rose-700' },
-          { title: 'Diários Enviados', value: '18', icon: Activity, color: 'bg-orange-100 text-orange-700' },
-          { title: 'Novas Tentantes', value: '3', icon: TrendingUp, color: 'bg-green-100 text-green-700' },
+          { title: 'Pacientes Ativas', value: activePatients.toString(), icon: Users, color: 'bg-purple-100 text-purple-700' },
+          { title: 'Consultas Hoje', value: appointmentsToday.toString(), icon: Calendar, color: 'bg-rose-100 text-rose-700' },
+          { title: 'Total Pacientes', value: patients.length.toString(), icon: Activity, color: 'bg-orange-100 text-orange-700' },
+          { title: 'Tentantes', value: patients.filter(p => p.condition === 'Tentante').length.toString(), icon: TrendingUp, color: 'bg-green-100 text-green-700' },
         ].map((stat, idx) => (
           <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start justify-between hover:shadow-md transition-shadow">
             <div>
@@ -66,51 +78,39 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, totalPatients 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Next Appointments with Confirmation status */}
+        {/* Next Appointments */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-800">Agenda do Dia</h3>
-            <button className="text-rose-500 text-sm font-medium hover:underline">Ver todos</button>
+            <h3 className="text-xl font-bold text-gray-800">Próximos Atendimentos</h3>
+            <button onClick={() => onNavigate('calendar')} className="text-rose-500 text-sm font-medium hover:underline">Ver todos</button>
           </div>
           
           <div className="space-y-4">
-            {MOCK_APPOINTMENTS.map((apt, idx) => {
-              // Simulating some confirmed appointments
-              const isConfirmed = idx === 0 || idx === 2;
-              
-              return (
+            {nextAppointments.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">Nenhum agendamento futuro encontrado.</p>
+            ) : nextAppointments.map((apt) => (
                 <div key={apt.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-rose-50 transition-colors group cursor-pointer border-l-4 border-transparent hover:border-wine-500">
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${isConfirmed ? 'bg-green-100 text-green-700' : 'bg-wine-100 text-wine-700'}`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-wine-100 text-wine-700`}>
                       {apt.time}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-gray-800 group-hover:text-wine-700">{apt.patientName}</h4>
-                        {isConfirmed ? (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded uppercase border border-green-100">
-                            <CheckCircle2 size={10} /> Confirmada
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-yellow-600 bg-yellow-50 px-1.5 py-0.5 rounded uppercase border border-yellow-100">
-                            <Clock size={10} /> Pendente
-                          </span>
-                        )}
+                        <span className="text-[10px] text-gray-400 font-normal">({new Date(apt.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})})</span>
                       </div>
                       <p className="text-sm text-gray-500">{apt.type}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      apt.status === 'Agendada' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                    }`}>
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                       {apt.status}
                     </span>
                     <ChevronRight size={18} className="text-gray-400 group-hover:text-wine-500" />
                   </div>
                 </div>
-              );
-            })}
+              )
+            )}
           </div>
         </div>
 
@@ -141,7 +141,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, totalPatients 
           
           <div className="mt-4 pt-4 border-t border-gray-100 text-center">
             <p className="text-sm font-medium text-wine-600">
-              +12% em relação à semana passada 🎉
+              Dados simulados para demonstração gráfica
             </p>
           </div>
         </div>

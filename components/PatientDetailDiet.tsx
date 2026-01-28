@@ -1,22 +1,29 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  X, Save, Edit2, ShoppingCart, Download, PieChart as PieIcon, 
-  TrendingUp, Clock, Plus, Trash2, StickyNote, Check 
+  X, Save, Edit2, ShoppingCart, List, LayoutList, Clock, Plus, Trash2, StickyNote, Flame,
+  Utensils, Target
 } from 'lucide-react';
 import { 
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell 
+  AreaChart, Area, ResponsiveContainer,
+  PieChart, Pie, Cell, Tooltip 
 } from 'recharts';
-import { MealPlan, Patient } from '../types';
+import { MealPlan, Patient, Meal } from '../types';
 
 interface PatientDetailDietProps {
   patient: Patient;
   mealPlanData?: MealPlan;
   onSaveMealPlan: (plan: MealPlan) => void;
+  readOnly?: boolean;
 }
 
-export const PatientDetailDiet: React.FC<PatientDetailDietProps> = ({ patient, mealPlanData: initialMealPlan, onSaveMealPlan }) => {
+export const PatientDetailDiet: React.FC<PatientDetailDietProps> = ({ 
+  patient, 
+  mealPlanData: initialMealPlan, 
+  onSaveMealPlan,
+  readOnly = false 
+}) => {
   const [isEditingDiet, setIsEditingDiet] = useState(false);
+  const [isSimplifiedView, setIsSimplifiedView] = useState(false);
   const [mealPlanData, setMealPlanData] = useState<MealPlan | undefined>(initialMealPlan);
   const [shoppingListDays, setShoppingListDays] = useState(7);
   const [showShoppingList, setShowShoppingList] = useState(false);
@@ -80,6 +87,10 @@ export const PatientDetailDiet: React.FC<PatientDetailDietProps> = ({ patient, m
     return { totalCals, totalProt, totalCarbs, totalFats };
   }, [mealPlanData]);
 
+  const calculateMealCalories = (meal: Meal) => {
+    return meal.items.reduce((acc, item) => acc + (item.calories || 0), 0);
+  };
+
   const shoppingList = useMemo(() => {
     if (!mealPlanData) return [];
     const items: Record<string, { quantity: string, rawName: string }> = {};
@@ -92,68 +103,6 @@ export const PatientDetailDiet: React.FC<PatientDetailDietProps> = ({ patient, m
     });
     return Object.values(items);
   }, [mealPlanData]);
-
-  const handleDownloadPDF = () => {
-    const printContent = `
-      <html>
-        <head>
-          <title>Lista de Compras - ${patient.name}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-            body { font-family: 'Inter', sans-serif; padding: 40px; color: #333; max-width: 800px; margin: 0 auto; }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #ffe4e6; padding-bottom: 20px; }
-            h1 { color: #903c4c; margin: 0 0 10px 0; font-size: 24px; }
-            .meta { color: #666; font-size: 14px; }
-            .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-            .item { background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; break-inside: avoid; }
-            .name { font-weight: 600; color: #374151; }
-            .qty { background: #903c4c; color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #eee; padding-top: 20px; }
-            @media print {
-              .item { border: 1px solid #ddd; }
-              body { padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Lista de Compras</h1>
-            <div class="meta">
-              <p><strong>Paciente:</strong> ${patient.name}</p>
-              <p><strong>Planejamento:</strong> ${mealPlanData?.title || 'Personalizado'}</p>
-              <p><strong>Período de compras:</strong> ${shoppingListDays} dias</p>
-            </div>
-          </div>
-          
-          <div class="grid">
-            ${shoppingList.map(item => `
-              <div class="item">
-                <span class="name">${item.rawName}</span>
-                <span class="qty">
-                  ${item.quantity} ${shoppingListDays > 1 ? `(x${shoppingListDays})` : ''}
-                </span>
-              </div>
-            `).join('')}
-          </div>
-
-          <div class="footer">
-            <p>Gerado pelo App Maíra Penna Nutri • Saúde da Mulher</p>
-            <p>Data de emissão: ${new Date().toLocaleDateString()}</p>
-          </div>
-
-          <script>
-            window.onload = () => { window.print(); }
-          </script>
-        </body>
-      </html>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-    }
-  };
 
   const macroData = dietStats ? [
     { name: 'Proteína', value: dietStats.totalProt, color: '#903c4c' },
@@ -169,85 +118,91 @@ export const PatientDetailDiet: React.FC<PatientDetailDietProps> = ({ patient, m
 
   return (
     <div className="py-6 space-y-6 animate-fade-in">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+        {/* Header Actions */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <div>
-                <h3 className="text-2xl font-bold text-wine-800">Plano Alimentar Ativo</h3>
-                <p className="text-gray-500 text-sm">{mealPlanData?.title}</p>
+                <h3 className="text-xl font-black text-wine-800 flex items-center gap-2">
+                    <Utensils size={24} className="text-wine-600"/>
+                    Plano Alimentar
+                </h3>
+                <p className="text-gray-500 text-sm mt-1 font-medium">{mealPlanData?.title || 'Personalizado'}</p>
             </div>
             
-            <div className="flex gap-2 w-full md:w-auto">
+            <div className="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
                 {isEditingDiet ? (
                     <>
-                        <button onClick={handleCancel} className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all">
-                            <X size={18} /> Cancelar
+                        <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition-all">
+                            <X size={16} /> Cancelar
                         </button>
-                        <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 bg-wine-600 text-white rounded-xl text-sm font-bold hover:bg-wine-700 shadow-md hover:shadow-lg transition-all">
-                            <Save size={18} /> Salvar Alterações
+                        <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-wine-600 text-white rounded-lg text-xs font-bold hover:bg-wine-700 shadow-md transition-all">
+                            <Save size={16} /> Salvar
                         </button>
                     </>
                 ) : (
                     <>
-                        <button onClick={() => setIsEditingDiet(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-wine-600 border border-wine-100 rounded-xl text-sm font-bold hover:bg-rose-50 transition-all">
-                            <Edit2 size={18} /> Editar Plano
-                        </button>
-                        <button onClick={() => setShowShoppingList(!showShoppingList)} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all ${showShoppingList ? 'bg-wine-600 text-white border-wine-600 shadow-lg' : 'bg-white text-wine-700 border-wine-100 hover:bg-rose-50'}`}>
-                            <ShoppingCart size={18} /> {showShoppingList ? 'Ver Cardápio' : 'Lista de Compras'}
-                        </button>
-                        {!showShoppingList && (
-                            <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-gray-700 rounded-xl text-sm font-bold border border-gray-100 hover:bg-gray-50">
-                                <Download size={18} /> PDF
+                        {!readOnly && (
+                            <button onClick={() => setIsEditingDiet(true)} className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2 bg-rose-50 text-wine-700 border border-wine-100 rounded-lg text-xs font-bold hover:bg-rose-100 transition-all">
+                                <Edit2 size={16} /> Editar
                             </button>
                         )}
+                        <button 
+                            onClick={() => setIsSimplifiedView(!isSimplifiedView)} 
+                            className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold border transition-all ${isSimplifiedView ? 'bg-wine-50 text-wine-700 border-wine-200' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                            title={isSimplifiedView ? "Ver Detalhes" : "Ver Resumo"}
+                        >
+                            {isSimplifiedView ? <List size={16} /> : <LayoutList size={16} />}
+                            {isSimplifiedView ? 'Ver Detalhes' : 'Resumo'}
+                        </button>
+                        <button onClick={() => setShowShoppingList(!showShoppingList)} className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold border transition-all ${showShoppingList ? 'bg-wine-600 text-white border-wine-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
+                            <ShoppingCart size={16} /> {showShoppingList ? 'Ver Dieta' : 'Lista de Compras'}
+                        </button>
                     </>
                 )}
             </div>
         </div>
 
-        {!showShoppingList && !isEditingDiet && (
+        {!showShoppingList && !isEditingDiet && !isSimplifiedView && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Diet Summary & Macros */}
-            <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 items-center">
-                <div className="w-32 h-32 relative shrink-0">
+            <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 items-center">
+                <div className="w-28 h-28 relative shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                    <Pie data={macroData} innerRadius={35} outerRadius={55} paddingAngle={5} dataKey="value">
+                    <Pie data={macroData} innerRadius={25} outerRadius={45} paddingAngle={5} dataKey="value">
                         {macroData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                     </Pie>
                     <Tooltip />
                     </PieChart>
                 </ResponsiveContainer>
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <PieIcon size={24} className="text-rose-200" />
                 </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4 flex-1">
-                <div className="bg-wine-50 p-3 rounded-2xl border border-wine-100 text-center">
-                    <p className="text-[10px] font-bold text-wine-600 uppercase tracking-widest">Prot</p>
-                    <p className="text-lg font-black text-wine-800">{dietStats?.totalProt}g</p>
-                </div>
-                <div className="bg-rose-50 p-3 rounded-2xl border border-rose-100 text-center">
-                    <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Carb</p>
-                    <p className="text-lg font-black text-wine-800">{dietStats?.totalCarbs}g</p>
-                </div>
-                <div className="bg-yellow-50 p-3 rounded-2xl border border-yellow-100 text-center">
-                    <p className="text-[10px] font-bold text-yellow-600 uppercase tracking-widest">Gord</p>
-                    <p className="text-lg font-black text-wine-800">{dietStats?.totalFats}g</p>
-                </div>
-                <div className="col-span-3 pt-2 text-center">
-                    <p className="text-xs text-gray-400 font-bold uppercase">Meta: <span className="text-gray-700">{patient.mealPlan?.caloricGoal} kcal</span> • Atual: <span className="text-wine-600">{dietStats?.totalCals} kcal</span></p>
-                </div>
+                <div className="grid grid-cols-3 gap-3 flex-1 w-full">
+                    {[
+                        { label: 'Proteína', val: dietStats?.totalProt, color: 'wine' },
+                        { label: 'Carbo', val: dietStats?.totalCarbs, color: 'rose' },
+                        { label: 'Gordura', val: dietStats?.totalFats, color: 'yellow' }
+                    ].map((m, i) => (
+                        <div key={i} className={`bg-${m.color}-50 p-3 rounded-xl border border-${m.color}-100 text-center`}>
+                            <p className={`text-[10px] font-bold text-${m.color}-600 uppercase tracking-widest`}>{m.label}</p>
+                            <p className={`text-lg font-black text-${m.color}-800`}>{m.val}g</p>
+                        </div>
+                    ))}
+                    <div className="col-span-3 pt-2 text-center border-t border-gray-50 mt-2">
+                        <p className="text-xs text-gray-400 font-bold uppercase flex items-center justify-center gap-2">
+                            <Target size={14} /> Meta: <span className="text-gray-700">{patient.mealPlan?.caloricGoal} kcal</span> 
+                            <span className="text-gray-300">|</span> 
+                            <Flame size={14} className="text-orange-500" /> Atual: <span className="text-wine-600">{dietStats?.totalCals} kcal</span>
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            {/* Diet Adherence Chart */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hidden lg:block">
                 <div className="flex items-center justify-between mb-4">
-                <h4 className="font-bold text-wine-800 text-sm flex items-center gap-2">
-                    <TrendingUp size={16} className="text-rose-400" /> Adesão Nutricional
-                </h4>
-                <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">ALTA</span>
+                    <h4 className="font-bold text-wine-800 text-xs flex items-center gap-2 uppercase tracking-wider">
+                        Adesão Semanal
+                    </h4>
+                    <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">ALTA</span>
                 </div>
-                <div className="h-28">
+                <div className="h-24">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={adherenceData}>
                     <defs>
@@ -256,133 +211,133 @@ export const PatientDetailDiet: React.FC<PatientDetailDietProps> = ({ patient, m
                         <stop offset="95%" stopColor="#903c4c" stopOpacity={0}/>
                         </linearGradient>
                     </defs>
-                    <XAxis dataKey="day" hide />
-                    <YAxis hide domain={[0, 100]} />
-                    <Tooltip 
-                        contentStyle={{borderRadius: '12px', border: 'none', fontSize: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'}}
-                        formatter={(value: number) => [`${value}%`, 'Adesão']}
-                    />
-                    <Area type="monotone" dataKey="adherence" stroke="#903c4c" strokeWidth={3} fillOpacity={1} fill="url(#colorAdherence)" />
+                    <Area type="monotone" dataKey="adherence" stroke="#903c4c" strokeWidth={2} fillOpacity={1} fill="url(#colorAdherence)" />
                     </AreaChart>
                 </ResponsiveContainer>
                 </div>
-                <p className="text-[10px] text-gray-400 text-center mt-2">Comprometimento nos últimos 7 dias</p>
             </div>
             </div>
         )}
 
         {showShoppingList && !isEditingDiet ? (
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 animate-slide-up">
-                <div className="flex flex-col md:flex-row items-center justify-between mb-10 border-b border-gray-50 pb-6 gap-6">
-                    <div className="text-center md:text-left">
-                        <h4 className="text-xl font-black text-gray-800">Minha Lista de Compras</h4>
-                        <p className="text-sm text-gray-400 mt-1 italic">Organizada por itens do seu plano nutricional</p>
-                    </div>
-                    <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter px-2">Comprar para:</span>
-                        <div className="flex gap-1">
-                            {[3, 7, 15].map(d => (
-                                <button key={d} onClick={() => setShoppingListDays(d)} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${shoppingListDays === d ? 'bg-wine-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-200'}`}>
-                                    {d === 7 ? '1 sem' : `${d} dias`}
-                                </button>
-                            ))}
-                        </div>
+                <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-xl font-black text-gray-800">Lista de Compras</h4>
+                    <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                         {[3, 7, 15].map(d => (
+                            <button key={d} onClick={() => setShoppingListDays(d)} className={`px-3 py-1 rounded-md text-xs font-bold ${shoppingListDays === d ? 'bg-white shadow-sm text-wine-600' : 'text-gray-500'}`}>{d} dias</button>
+                         ))}
                     </div>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {shoppingList.map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-transparent hover:border-rose-100 hover:bg-white transition-all group">
-                            <div className="flex items-center gap-4">
-                                <div className="w-6 h-6 border-2 border-rose-200 rounded-lg flex items-center justify-center group-hover:bg-wine-600 group-hover:border-wine-600 transition-all">
-                                    <Check size={14} className="text-white scale-0 group-hover:scale-100 transition-transform" />
-                                </div>
-                                <span className="text-gray-700 font-bold group-hover:text-wine-800">{item.rawName}</span>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <span className="text-xs font-black text-wine-600 bg-wine-50 px-2 py-0.5 rounded-full uppercase">
-                                    {item.quantity}
-                                </span>
-                                {shoppingListDays > 1 && <span className="text-[10px] text-gray-400 mt-1">x{shoppingListDays} porções</span>}
-                            </div>
+                        <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                             <span className="text-sm font-medium text-gray-700">{item.rawName}</span>
+                             <span className="text-xs font-bold bg-white px-2 py-1 rounded border border-gray-200">{item.quantity} {shoppingListDays > 1 && `(x${shoppingListDays})`}</span>
                         </div>
                     ))}
                 </div>
-                
-                <button 
-                  onClick={handleDownloadPDF}
-                  className="mt-12 w-full py-4 bg-gradient-to-r from-wine-600 to-rose-400 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:shadow-xl hover:scale-[1.01] transition-all"
-                >
-                    <Download size={24} /> Gerar PDF para Impressão
-                </button>
             </div>
         ) : (
-            <div className={`grid grid-cols-1 ${isEditingDiet ? 'gap-8' : 'md:grid-cols-2 gap-6'}`}>
+            <div className={`grid gap-4 ${isSimplifiedView ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                 {mealPlanData?.meals.map((meal, mIdx) => (
-                    <div key={meal.id} className={`bg-white rounded-2xl border ${isEditingDiet ? 'border-wine-200 shadow-md ring-1 ring-wine-100' : 'border-gray-100 shadow-sm hover:shadow-md'} overflow-hidden transition-all`}>
-                        <div className={`${isEditingDiet ? 'bg-wine-50' : 'bg-rose-50/30'} p-4 border-b border-gray-50 flex flex-col gap-3`}>
-                            <div className="flex justify-between items-center w-full">
-                                <div className="flex items-center gap-3 flex-1">
-                                    <div className="p-2 bg-white rounded-xl shadow-sm text-wine-600">
-                                        <Clock size={16} />
-                                    </div>
+                    <div key={meal.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md">
+                        {/* Meal Header */}
+                        <div className={`p-4 flex items-center justify-between ${isEditingDiet ? 'bg-gray-50' : (isSimplifiedView ? 'bg-white border-b border-gray-50' : 'bg-gradient-to-r from-wine-600 to-wine-700 text-white')}`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${isEditingDiet || isSimplifiedView ? 'bg-rose-50 text-wine-600 shadow-sm' : 'bg-white/20 text-white'}`}>
+                                    <Clock size={18} />
+                                </div>
+                                <div>
                                     {isEditingDiet ? (
-                                        <input value={meal.name} onChange={(e) => handleMealChange(mIdx, 'name', e.target.value)} className="font-black text-gray-800 bg-transparent border-b border-wine-200 focus:border-wine-600 focus:outline-none w-full max-w-[200px]" placeholder="Nome da Refeição" />
+                                        <div className="flex gap-2">
+                                            <input value={meal.name} onChange={(e) => handleMealChange(mIdx, 'name', e.target.value)} className="font-bold text-gray-800 bg-white border border-gray-200 rounded px-2 py-1 text-sm w-40" placeholder="Nome" />
+                                            <input type="time" value={meal.time} onChange={(e) => handleMealChange(mIdx, 'time', e.target.value)} className="font-medium text-gray-600 bg-white border border-gray-200 rounded px-2 py-1 text-sm" />
+                                        </div>
                                     ) : (
-                                        <span className="font-black text-gray-800">{meal.name}</span>
+                                        <>
+                                            <h4 className={`font-bold ${isSimplifiedView ? 'text-gray-800 text-sm' : 'text-lg'} leading-none`}>{meal.name}</h4>
+                                            <span className={`text-xs ${isSimplifiedView ? 'text-gray-400' : 'opacity-80'} font-medium`}>{meal.time}</span>
+                                        </>
                                     )}
                                 </div>
-                                {isEditingDiet ? (
-                                    <input type="time" value={meal.time} onChange={(e) => handleMealChange(mIdx, 'time', e.target.value)} className="text-xs font-bold text-wine-600 bg-white px-2 py-1 rounded border border-wine-100 focus:outline-none" />
-                                ) : (
-                                    <span className="text-xs font-bold text-wine-600 uppercase tracking-widest">{meal.time}</span>
-                                )}
                             </div>
-                            {isEditingDiet && (
-                                <div className="w-full">
-                                    <textarea value={meal.notes || ''} onChange={(e) => handleMealChange(mIdx, 'notes', e.target.value)} placeholder="Adicione observações gerais..." className="w-full text-xs text-gray-600 bg-white/50 p-2 rounded-lg border border-wine-100 focus:border-wine-400 focus:outline-none resize-none" rows={2} />
-                                </div>
-                            )}
-                        </div>
-                        <div className="p-5 space-y-4">
-                            {meal.items.map((item, iIdx) => (
-                                <div key={item.id || iIdx} className="flex flex-col gap-1">
-                                    <div className="flex justify-between items-start gap-4">
-                                        {isEditingDiet ? (
-                                            <>
-                                                <div className="flex-1 flex flex-col gap-2">
-                                                    <input value={item.name} onChange={(e) => handleItemChange(mIdx, iIdx, 'name', e.target.value)} className="w-full text-sm text-gray-700 font-medium border-b border-gray-200 focus:border-wine-500 focus:outline-none placeholder-gray-300" placeholder="Alimento" />
-                                                    <input value={item.notes || ''} onChange={(e) => handleItemChange(mIdx, iIdx, 'notes', e.target.value)} className="w-full text-[11px] text-gray-400 border-b border-dotted border-gray-200 focus:border-wine-300 focus:outline-none placeholder-gray-200" placeholder="Obs..." />
-                                                </div>
-                                                <div className="w-24">
-                                                    <input value={item.quantity} onChange={(e) => handleItemChange(mIdx, iIdx, 'quantity', e.target.value)} className="w-full text-xs font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200 focus:border-wine-500 focus:outline-none text-right" placeholder="Qtd" />
-                                                </div>
-                                                <button onClick={() => handleRemoveItem(mIdx, iIdx)} className="text-gray-400 hover:text-red-500 p-1 hover:bg-red-50 rounded transition-colors mt-1"><Trash2 size={16} /></button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="flex-1">
-                                                    <span className="text-sm text-gray-700 font-medium block">{item.name}</span>
-                                                    {item.notes && <span className="text-[11px] text-gray-400 italic block mt-0.5">{item.notes}</span>}
-                                                </div>
-                                                <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">{item.quantity}</span>
-                                            </>
-                                        )}
+                            
+                            {!isEditingDiet && !isSimplifiedView && (
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-1 bg-black/20 px-3 py-1 rounded-full">
+                                        <Flame size={12} className="text-orange-300" />
+                                        <span className="text-xs font-bold">{calculateMealCalories(meal)} kcal</span>
                                     </div>
                                 </div>
-                            ))}
-                            {isEditingDiet && (
-                                <button onClick={() => handleAddItem(mIdx)} className="w-full py-2 border border-dashed border-wine-200 rounded-lg text-wine-600 text-xs font-bold hover:bg-wine-50 flex items-center justify-center gap-1 transition-colors mt-2">
-                                    <Plus size={14} /> Adicionar Item
-                                </button>
-                            )}
-                            {!isEditingDiet && meal.notes && (
-                                <div className="mt-4 pt-3 border-t border-gray-50 flex items-start gap-2">
-                                    <StickyNote size={14} className="text-yellow-500 mt-0.5" />
-                                    <p className="text-xs text-gray-500 italic">{meal.notes}</p>
-                                </div>
                             )}
                         </div>
+
+                        {/* Meal Content - Hidden in simplified view */}
+                        {!isSimplifiedView && (
+                            <div className="p-0">
+                                <div className="divide-y divide-gray-50">
+                                    {meal.items.map((item, iIdx) => (
+                                        <div key={item.id || iIdx} className={`p-4 flex items-start gap-4 ${isEditingDiet ? 'bg-white' : 'hover:bg-rose-50/30 even:bg-gray-50/50'}`}>
+                                            {isEditingDiet ? (
+                                                <div className="w-full grid grid-cols-12 gap-3 items-start">
+                                                    <div className="col-span-6 space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Alimento</label>
+                                                        <input value={item.name} onChange={(e) => handleItemChange(mIdx, iIdx, 'name', e.target.value)} className="w-full text-sm font-medium border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-wine-500 outline-none" placeholder="Ex: Aveia" />
+                                                        <input value={item.notes || ''} onChange={(e) => handleItemChange(mIdx, iIdx, 'notes', e.target.value)} className="w-full text-xs text-gray-500 border border-gray-200 rounded-lg p-1.5 focus:ring-2 focus:ring-wine-500 outline-none" placeholder="Obs: Flocos finos" />
+                                                    </div>
+                                                    <div className="col-span-3 space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Qtd</label>
+                                                        <input value={item.quantity} onChange={(e) => handleItemChange(mIdx, iIdx, 'quantity', e.target.value)} className="w-full text-sm font-medium border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-wine-500 outline-none" placeholder="Ex: 30g" />
+                                                    </div>
+                                                    <div className="col-span-2 space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Kcal</label>
+                                                        <input type="number" value={item.calories || 0} onChange={(e) => handleItemChange(mIdx, iIdx, 'calories' as any, e.target.value)} className="w-full text-sm font-medium border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-wine-500 outline-none" />
+                                                    </div>
+                                                    <div className="col-span-1 pt-6 flex justify-center">
+                                                        <button onClick={() => handleRemoveItem(mIdx, iIdx)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="mt-1 w-2 h-2 rounded-full bg-wine-200 shrink-0"></div>
+                                                    <div className="flex-1">
+                                                        <p className="text-gray-800 font-medium text-sm leading-tight">{item.name}</p>
+                                                        {item.notes && <p className="text-xs text-gray-400 italic mt-0.5">{item.notes}</p>}
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <span className="inline-block bg-wine-50 text-wine-700 px-3 py-1 rounded-full text-xs font-bold border border-wine-100">
+                                                            {item.quantity}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {isEditingDiet && (
+                                    <div className="p-4 bg-gray-50 border-t border-gray-100">
+                                        <button onClick={() => handleAddItem(mIdx)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 text-xs font-bold hover:border-wine-400 hover:text-wine-600 hover:bg-white transition-all flex items-center justify-center gap-2">
+                                            <Plus size={16} /> Adicionar Alimento
+                                        </button>
+                                    </div>
+                                )}
+
+                                {!isEditingDiet && meal.notes && (
+                                    <div className="px-6 py-4 bg-yellow-50/50 border-t border-yellow-100 flex items-start gap-3">
+                                        <StickyNote size={16} className="text-yellow-600 mt-0.5" />
+                                        <p className="text-xs text-yellow-800 italic leading-relaxed">{meal.notes}</p>
+                                    </div>
+                                )}
+                                
+                                {isEditingDiet && (
+                                    <div className="px-4 pb-4 bg-gray-50">
+                                        <textarea value={meal.notes || ''} onChange={(e) => handleMealChange(mIdx, 'notes', e.target.value)} className="w-full text-xs p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-wine-500 outline-none" rows={2} placeholder="Observações gerais da refeição..." />
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>

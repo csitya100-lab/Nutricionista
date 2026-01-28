@@ -17,7 +17,9 @@ import {
   ThumbsDown,
   AlertTriangle,
   Pill,
-  Flag
+  Flag,
+  Plus,
+  X
 } from 'lucide-react';
 import { Patient, MealPlan } from '../types';
 
@@ -38,8 +40,7 @@ export const NewPatientForm: React.FC<NewPatientFormProps> = ({ onSave, onCancel
     stage: '',
     mainComplaint: '',
     history: '',
-    medications: '',
-    supplements: '', 
+    // medications & supplements removidos do formData string simples, gerenciados via estados de array abaixo
 
     // Estilo de Vida
     smoker: 'false',
@@ -61,6 +62,40 @@ export const NewPatientForm: React.FC<NewPatientFormProps> = ({ onSave, onCancel
     nutritionalStrategy: '', // Titulo do plano
     caloricGoal: '',
   });
+
+  // Estados para listas dinâmicas
+  const [medicationsList, setMedicationsList] = useState<string[]>([]);
+  const [currentMed, setCurrentMed] = useState('');
+  
+  const [supplementsList, setSupplementsList] = useState<string[]>([]);
+  const [currentSupp, setCurrentSupp] = useState('');
+
+  // Handlers para Medicamentos
+  const handleAddMed = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (currentMed.trim()) {
+      setMedicationsList([...medicationsList, currentMed.trim()]);
+      setCurrentMed('');
+    }
+  };
+
+  const handleRemoveMed = (index: number) => {
+    setMedicationsList(medicationsList.filter((_, i) => i !== index));
+  };
+
+  // Handlers para Suplementos
+  const handleAddSupp = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (currentSupp.trim()) {
+      setSupplementsList([...supplementsList, currentSupp.trim()]);
+      setCurrentSupp('');
+    }
+  };
+
+  const handleRemoveSupp = (index: number) => {
+    setSupplementsList(supplementsList.filter((_, i) => i !== index));
+  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,8 +132,8 @@ export const NewPatientForm: React.FC<NewPatientFormProps> = ({ onSave, onCancel
       anamnesis: {
         mainComplaint: formData.mainComplaint,
         history: formData.history,
-        medications: formData.medications.split(',').map(s => s.trim()).filter(Boolean),
-        supplements: formData.supplements.split(',').map(s => s.trim()).filter(Boolean),
+        medications: medicationsList,
+        supplements: supplementsList,
         allergies: formData.allergies.split(',').map(s => s.trim()).filter(Boolean),
         lifestyle: {
           smoker: formData.smoker === 'true',
@@ -123,7 +158,7 @@ export const NewPatientForm: React.FC<NewPatientFormProps> = ({ onSave, onCancel
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto pb-12">
+    <div className="space-y-6 animate-fade-in max-w-6xl mx-auto pb-12">
       <div className="flex items-center justify-between sticky top-0 bg-rose-50/95 backdrop-blur-sm z-10 py-4 border-b border-rose-100/50">
         <div className="flex items-center gap-4">
             <button 
@@ -234,25 +269,68 @@ export const NewPatientForm: React.FC<NewPatientFormProps> = ({ onSave, onCancel
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                <div className="space-y-2">
+                {/* Medicamentos - Tag Input */}
+                <div className="space-y-3">
                     <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <Pill size={16} className="text-gray-400" /> Medicamentos (Separar por vírgula)
+                        <Pill size={16} className="text-gray-400" /> Medicamentos
                     </label>
-                    <textarea 
-                    name="medications" rows={2} placeholder="Ex: Anticoncepcional..."
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-wine-500 resize-none"
-                    value={formData.medications} onChange={handleChange}
-                    />
+                    <div className="flex gap-2">
+                        <input 
+                            value={currentMed}
+                            onChange={(e) => setCurrentMed(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddMed(e as any)}
+                            placeholder="Adicionar medicamento..."
+                            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-wine-500 text-sm"
+                        />
+                        <button 
+                            onClick={handleAddMed}
+                            className="p-2.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-wine-100 hover:text-wine-600 transition-colors"
+                        >
+                            <Plus size={20} />
+                        </button>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 min-h-[30px] p-2 bg-gray-50 rounded-xl border border-gray-100">
+                        {medicationsList.length === 0 && <span className="text-xs text-gray-400 italic">Nenhum medicamento adicionado.</span>}
+                        {medicationsList.map((med, idx) => (
+                            <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 bg-wine-100 text-wine-700 rounded-lg text-xs font-bold">
+                                {med}
+                                <button onClick={() => handleRemoveMed(idx)} className="hover:bg-wine-200 rounded p-0.5"><X size={12}/></button>
+                            </span>
+                        ))}
+                    </div>
                 </div>
-                 <div className="space-y-2">
+
+                 {/* Suplementação - Tag Input */}
+                 <div className="space-y-3">
                     <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <Pill size={16} className="text-green-500" /> Suplementação (Separar por vírgula)
+                        <Pill size={16} className="text-green-500" /> Suplementação
                     </label>
-                    <textarea 
-                    name="supplements" rows={2} placeholder="Ex: Whey, Omega 3, Vitamina D..."
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-wine-500 resize-none"
-                    value={formData.supplements} onChange={handleChange}
-                    />
+                    <div className="flex gap-2">
+                        <input 
+                            value={currentSupp}
+                            onChange={(e) => setCurrentSupp(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddSupp(e as any)}
+                            placeholder="Adicionar suplemento..."
+                            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                        />
+                        <button 
+                            onClick={handleAddSupp}
+                            className="p-2.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-green-100 hover:text-green-600 transition-colors"
+                        >
+                            <Plus size={20} />
+                        </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 min-h-[30px] p-2 bg-gray-50 rounded-xl border border-gray-100">
+                        {supplementsList.length === 0 && <span className="text-xs text-gray-400 italic">Nenhum suplemento adicionado.</span>}
+                        {supplementsList.map((supp, idx) => (
+                            <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold">
+                                {supp}
+                                <button onClick={() => handleRemoveSupp(idx)} className="hover:bg-green-200 rounded p-0.5"><X size={12}/></button>
+                            </span>
+                        ))}
+                    </div>
                 </div>
             </div>
           </div>
